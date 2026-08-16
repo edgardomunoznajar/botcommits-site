@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>botcommits.dev - AI-Attributed Commits on GitHub: The Exponential Bent</title>
+<meta name="description" content="Monthly counts of AI-attributed commits on public GitHub, Jan 2025 to Aug 2026, with a stated instrument. Claude Code reached ~20M commits/month in July 2026; growth stopped being exponential around April 2026.">
+<meta name="keywords" content="AI commits, Claude Code, GitHub, AI-generated code, Copilot coding agent, Codex, Jules, Devin, Aider, growth curve, logistic, saturation, bot commits">
+<meta name="author" content="Edgardo Munoz">
+<link rel="canonical" href="https://botcommits.dev">
+<link rel="icon" type="image/png" href="favicon.png">
+<meta name="robots" content="index, follow">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://botcommits.dev">
+<meta property="og:title" content="botcommits.dev - The exponential bent">
+<meta property="og:description" content="Claude Code: 24 commits in Jan 2025, ~20M/month by Jul 2026. In March we said the S-curve inflection had not been observed. It has now.">
+<meta property="og:site_name" content="botcommits.dev">
+<meta property="og:image" content="https://botcommits.dev/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="botcommits.dev - The exponential bent">
+<meta name="twitter:description" content="Claude Code: 24 commits in Jan 2025, ~20M/month by Jul 2026. Growth stopped being exponential around April 2026.">
+<meta name="twitter:image" content="https://botcommits.dev/og-image.png">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  "name": "AI-Attributed GitHub Commits, monthly",
+  "url": "https://botcommits.dev",
+  "description": "Monthly counts of AI-attributed commits on public GitHub repositories by tool (Claude Code, Copilot coding agent, Jules, OpenAI Codex, Gemini Code Assist, Devin, Aider), Jan 2025 onward. BigQuery/GH Archive through Sep 2025, windowed GitHub Search API counts after.",
+  "creator": {"@type": "Person", "name": "Edgardo Munoz"},
+  "temporalCoverage": "2025-01/2026-08",
+  "distribution": [
+    {"@type": "DataDownload", "encodingFormat": "application/json", "contentUrl": "https://botcommits.dev/data.json"},
+    {"@type": "DataDownload", "encodingFormat": "text/csv", "contentUrl": "https://github.com/edgardomunoznajar/github_explosion/blob/main/data/search_api_monthly.csv"}
+  ]
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; background: #faf6f1; color: #2d1f0e; line-height: 1.6; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+  header { padding: 48px 0 28px; text-align: center; border-bottom: 1px solid #e0d5c7; }
+  header h1 { font-size: 2.8rem; font-weight: 700; background: linear-gradient(135deg, #c45a3c, #a0522d, #6b3a2a); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+  header p { color: #7a6652; font-size: 1rem; max-width: 720px; margin: 0 auto; }
+  .notice { background: #fff8f3; border: 1px solid #e8c9a0; border-radius: 12px; padding: 20px 24px; margin: 28px 0 8px; font-size: 0.92rem; }
+  .notice strong { color: #6b3a2a; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; padding: 24px 0; }
+  .stat-card { background: #fff; border: 1px solid #e0d5c7; border-radius: 12px; padding: 22px; text-align: center; }
+  .stat-card .number { font-size: 2.1rem; font-weight: 700; color: #b5451b; }
+  .stat-card .label { font-size: 0.85rem; color: #7a6652; margin-top: 4px; }
+  .stat-card .change { font-size: 0.8rem; color: #5a8a3c; margin-top: 4px; }
+  .stat-card .change.muted { color: #9a8b7a; }
+  .chart-section { background: #fff; border: 1px solid #e0d5c7; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+  .chart-section h2 { font-size: 1.1rem; color: #6b3a2a; margin-bottom: 12px; font-weight: 600; }
+  .chart-section h2 small { font-size: 0.75rem; color: #9a8b7a; font-weight: 400; }
+  .chart-container { position: relative; height: 360px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } header h1 { font-size: 2rem; } }
+  .note { margin-top: 10px; font-size: 0.8rem; color: #7a6652; }
+  .prose { font-size: 0.88rem; color: #5a4a3a; line-height: 1.75; }
+  .prose p { margin: 6px 0 10px; }
+  .prose ul { margin: 4px 0 12px 20px; }
+  .prose code { background: #f4ede3; padding: 1px 5px; border-radius: 4px; font-size: 0.85em; }
+  .prose a, footer a { color: #b5451b; text-decoration: none; }
+  table.tbl { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  table.tbl th { text-align: left; color: #7a6652; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 6px; border-bottom: 1px solid #e0d5c7; }
+  table.tbl td { padding: 8px 6px; border-bottom: 1px solid #f0e8dd; white-space: nowrap; }
+  table.tbl td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.tbl tr.best td { color: #6b3a2a; font-weight: 600; }
+  .scroll { overflow-x: auto; }
+  footer { text-align: center; padding: 32px 0; color: #9a8b7a; font-size: 0.8rem; border-top: 1px solid #e0d5c7; margin-top: 24px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>botcommits.dev</h1>
+    <p>AI-attributed commits on public GitHub, by month and by tool, with the instrument stated. Jan 2025 → <span id="hdr-last"></span>. Updated <span id="hdr-updated"></span>.</p>
+  </header>
+  <main>
+
+  <div class="notice prose">
+    <strong>What changed since March 2026.</strong> The March version of this page fitted three growth curves to 14 months of data and said the best fit was exponential (doubling every ~1.2–1.4 months) and that <em>"the inflection point has not yet been observed."</em>
+    Five more months of data say otherwise: Claude Code commits went from <span id="n-mar"></span> in March to <span id="n-last"></span> in <span id="n-last-month"></span> — a doubling time of ~<span id="n-dbl"></span> months, not 1.2 — and month-on-month growth fell from +89% (March) to +<span id="n-mom"></span>% (<span id="n-last-month2"></span>).
+    The March exponential predicted <span id="n-marchpred"></span> for <span id="n-last-month3"></span>. Sigmoid models now beat the exponential in <span id="n-sens"></span> fitting configurations; the fitted inflection sits at <strong id="n-infl"></strong> and the estimated ceiling for public Claude commits is <strong id="n-ceil"></strong> per month (logistic–Gompertz range in the primary fit; wider across configurations, see the model table).
+    This page also replaces the hand-collected Nov 2025–Mar 2026 numbers with a repeatable, windowed Search-API collector, fills the "missing" Oct 2025 month, adds GitHub's Copilot coding agent, and drops the developer count that could no longer be measured. Details in <a href="#instrument">How we know</a>.
+  </div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="number" id="c-claude">--</div>
+      <div class="label">Claude Code commits, <span class="lastm"></span></div>
+      <div class="change" id="c-claude-mom"></div>
+    </div>
+    <div class="stat-card">
+      <div class="number" id="c-total">--</div>
+      <div class="label">All tracked AI commits, <span class="lastm"></span></div>
+      <div class="change muted">six-tool series; + Copilot agent shown separately</div>
+    </div>
+    <div class="stat-card">
+      <div class="number" id="c-dbl">--</div>
+      <div class="label">Doubling time, exponential fit</div>
+      <div class="change muted" id="c-dbl-note"></div>
+    </div>
+    <div class="stat-card">
+      <div class="number" id="c-share">--</div>
+      <div class="label">AI share of public commits, <span class="lastm"></span></div>
+      <div class="change muted">push events as denominator, see notes</div>
+    </div>
+  </div>
+
+  <div class="chart-section">
+    <h2>The bend: Claude Code commits/month, actual vs. the March-2026 forecast vs. current fits <small>(log scale; band = collector lo–hi; projection to <span id="proj-end"></span>)</small></h2>
+    <div class="chart-container" style="height:460px;"><canvas id="bendChart"></canvas></div>
+    <p class="note" id="bend-note"></p>
+  </div>
+
+  <div class="grid-2">
+    <div class="chart-section">
+      <h2>Month-on-month growth, Claude Code <small>(from Aug 2025; Oct 2025 now filled)</small></h2>
+      <div class="chart-container"><canvas id="momChart"></canvas></div>
+      <p class="note">Growth above +50%/month through March 2026; +14–26%/month since April. Search-API months carry ±10–15% measurement noise, so single-month bars are indicative, the level shift is not.</p>
+    </div>
+    <div class="chart-section">
+      <h2>AI-attributed commits as a share of public push events</h2>
+      <div class="chart-container"><canvas id="shareChart"></canvas></div>
+      <p class="note"><strong>Denominator:</strong> monthly PushEvents from GH Archive (BigQuery). GitHub's Octoverse 2025 reports 986M commits for 2025 against ~1.0B push events in the same data, so push events are used as a ~1:1 proxy for unique commits; the raw payload <code>size</code> field (avg 3.8) over-counts because merges re-push branch commits. The March page's "×2.5 code-volume adjustment" is dropped: agent commits are larger than human ones (Robbes et al. 2026), but no defensible multiplier exists for this denominator.</p>
+    </div>
+  </div>
+
+  <div class="chart-section">
+    <h2>Commits by tool <small>(log scale, not stacked; Copilot coding agent shown as two instruments — see notes)</small></h2>
+    <div class="chart-container" style="height:400px;"><canvas id="toolChart"></canvas></div>
+    <p class="note"><strong>Copilot coding agent</strong> is new on this page. It is visible two ways: commits authored by <code>copilot-swe-agent[bot]</code> on PR branches, and user-authored squash-merge commits carrying <code>Co-authored-by: Copilot</code> trailers (often 15–45 per merge). The two count different objects and are at most additive. Both peak in Mar–Apr 2026 (~1.2M combined) and fall ~3× by June; whether that is a usage decline or another authorship change is unresolved. Devin, Gemini Code Assist and Codex use different queries than the March page (the March values could not be reproduced), so those series step at Oct 2025.</p>
+  </div>
+
+  <div class="chart-section">
+    <h2>Growth-model comparison <small>(Claude Code; ordinary least squares in linear space, Feb 2025 → last full month, partial month excluded)</small></h2>
+    <div class="scroll"><table class="tbl" id="fitTable">
+      <thead><tr><th>Fit</th><th>Model</th><th class="num">AIC</th><th class="num">R²</th><th>Doubling / ceiling</th><th>Inflection</th><th class="num" id="th-lastfull"></th><th class="num" id="th-proj"></th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <p class="note" id="sens-note"></p>
+    <div class="scroll" style="margin-top:8px;"><table class="tbl" id="sensTable">
+      <thead><tr><th>Space</th><th>Start</th><th class="num">n</th><th>Best by AIC</th><th class="num">Exp. doubling (mo)</th><th class="num">Logistic ceiling</th><th class="num">Logistic t₀</th><th class="num">Gompertz ceiling</th><th class="num">Gompertz t₀</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <p class="note">Reading the sensitivity table: linear-space fits (weighted toward the high-volume months, which is what a ceiling question needs) agree on an April 2026 inflection and a 22–30M ceiling regardless of start month. Log-space fits weight the tiny 2025 months equally and are unstable with 3-parameter sigmoids on ≤18 points — they are shown so nobody has to take our word for the primary choice. Empty ceiling = fit ran to the parameter bound (no ceiling found in that configuration).</p>
+  </div>
+
+  <div class="chart-section prose" id="instrument">
+    <h2>How we know, and how well</h2>
+    <p><strong>Two instruments, spliced.</strong></p>
+    <ul>
+      <li><strong>Jan–Sep 2025 — GH Archive via BigQuery.</strong> Exact commit-level counts: every PushEvent payload carried the commit list, so trailers (<code>Co-Authored-By: Claude &lt;noreply@anthropic.com&gt;</code>), body markers and author e-mails could be regex-matched. ~400 GB scanned per month.</li>
+      <li><strong>Oct 2025 onward — GitHub commit Search API.</strong> In October 2025 GH Archive's PushEvent payload shrank to <code>{repository_id, push_id, ref, head, before}</code> — no commit list at all (payload volume: Sep 379 GB → Nov 96 GB → Jul 2026 27 GB). The March page called October a "data gap"; it was this format change, and the Search API puts October at ~954K Claude commits, on trend. From October on, nothing in GH Archive can identify a tool or count developers, which is why the "Developers using AI" card is gone: the last measurable value was 36,692 distinct public pushers in Aug 2025, and it would be misleading to keep showing it.</li>
+    </ul>
+    <p><strong>What the Search API's <code>total_count</code> actually is.</strong> Every heavy query returns <code>incomplete_results: true</code> — GitHub times out and returns an estimate. Measured properties: (a) the estimate is close to the sum of sub-windows when a window holds fewer than ~2–3M matches, and 30–40% <em>low</em> when it holds 15–20M (July 2026: whole-month calls 11.6M and 14.3M; four weekly windows summed to 18.6M); (b) the same query over the same window drifts ±10–15% between calls, occasionally 2×. The collector therefore splits each month into windows sized to hold &lt;1.5M matches, queries each window three times, uses the median, and sums; lo/hi are the sums of per-window min/max. Bot-account queries (<code>author:google-labs-jules[bot]</code>, <code>author:copilot-swe-agent[bot]</code>, <code>author:devin-ai-integration[bot]</code>) return exact, repeatable counts. Every raw call is logged and published.</p>
+    <p><strong>Cross-checks.</strong> Where both instruments overlap (Mar–Sep 2025) they agree to ±20%. The March-2026 hand-collected Claude values are reproduced by the collector (Feb 2026: 5.19M hand vs 5.44M; Mar 2026: 10.19M vs 10.29M). Independently, Quispe (Caltech, 2026) harvested 7,786,771 Claude co-authored commits for Jan 2025–Jan 2026 from GitHub's public API; this page's series sums to 7.83M over the same window.</p>
+    <p><strong>What this measures and what it doesn't.</strong> Attribution markers, not AI use. Claude Code adds its trailer automatically (~80% of assisted commits carry it; Kraishan 2025), Copilot's inline completions add nothing (~9%), Cursor adds nothing. Cross-tool ratios here are largely disclosure-rate ratios. Public repositories only — GitHub reports 81.5% of contributions happen in private repos. Squash-merges collapse many agent commits into one. Khosravani &amp; Mockus (2026) find single-channel detection undercounts Claude Code by ~30× at the project level. Everything on this page is a lower bound with a stated instrument, which is more than the "275 million AI commits a week" figures circulating without one.</p>
+    <p><strong>Model fitting.</strong> Exponential, logistic and Gompertz curves fitted by nonlinear least squares (<code>scipy.optimize.curve_fit</code>) to Feb 2025 → last full month; Jan 2025 (24 commits, pre-launch) and the current partial month are excluded. AIC = n·ln(RSS/n) + 2k. The hindcast row refits the same models to data through Mar 2026 only, reproducing the March page's exponential (doubling 1.22 mo) and its "no ceiling found" logistic, and shows what those predicted for the months since.</p>
+    <p><strong>References.</strong>
+      Quispe, <a href="https://arxiv.org/abs/2605.25438">arXiv:2605.25438</a> ·
+      Khosravani &amp; Mockus, <a href="https://arxiv.org/abs/2606.24429">arXiv:2606.24429</a> ·
+      Robbes et al., <a href="https://arxiv.org/abs/2601.18341">arXiv:2601.18341</a> ·
+      Kraishan, <a href="https://arxiv.org/abs/2512.00867">arXiv:2512.00867</a> ·
+      Ghaleb, <a href="https://arxiv.org/abs/2601.17406">arXiv:2601.17406</a> ·
+      GitHub Octoverse 2025.
+      Code, raw Search-API calls, monthly CSV and this page: <a href="https://github.com/edgardomunoznajar/github_explosion">github.com/edgardomunoznajar/github_explosion</a>. Machine-readable numbers: <a href="data.json">data.json</a>.</p>
+  </div>
+
+  </main>
+  <footer>Last updated <span id="ft-updated"></span>. Open source — data, queries and code on <a href="https://github.com/edgardomunoznajar/github_explosion">GitHub</a>. Corrections welcome.</footer>
+</div>
+
+<script>
+const DATA = {"updated":"2026-08-16","labels":["2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08"],"proj_labels":["2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09","2026-10","2026-11","2026-12","2027-01","2027-02"],"partial":[false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true],"source":["bigquery","bigquery","bigquery","bigquery","bigquery","bigquery","bigquery","bigquery","bigquery","search_api","search_api","search_api","search_api","search_api","search_api","search_api","search_api","search_api","search_api","search_api"],"last_full_month":"2026-07","last_full_idx":18,"claude":[24,2139,23273,21703,43017,224256,440682,557127,486418,953767,1116487,1549783,3396432,5439099,10291623,11756992,13854357,17436783,19804129,9020552],"claude_lo":[24,2139,23273,21703,43017,224256,440682,557127,486418,913666,1097728,1491021,3193736,5395728,9987189,11662448,13545953,17015282,19736348,9008169],"claude_hi":[24,2139,23273,21703,43017,224256,440682,557127,486418,963175,1121902,1550982,3396934,5449455,10318239,11766395,13973570,17469361,19804946,9020583],"total6":[2734,5101,27909,27315,77165,294710,505601,655401,570922,1072475,1231450,1693958,3604315,5672580,10608342,12066054,14193313,17721774,20083498,9142730],"tools":{"claude":[24,2139,23273,21703,43017,224256,440682,557127,486418,953767,1116487,1549783,3396432,5439099,10291623,11756992,13854357,17436783,19804129,9020552],"copilot_agent":[null,null,null,null,null,null,null,null,143902,258100,384513,410396,470590,554710,548910,484456,321665,114992,113119,48981],"copilot_coauthor":[null,null,null,null,null,null,null,null,66948,95958,110222,100480,109083,209495,430876,683730,548416,275517,273631,150686],"jules":[21,25,126,188,26297,62720,42590,70848,63173,54938,53115,82143,121217,121725,114426,88584,91544,76743,68085,28668],"openai_codex":[374,234,254,1474,852,558,1037,1669,1465,19732,17284,19301,47058,73985,156590,161209,197632,170057,182686,75190],"gemini_assist":[17,10,300,257,494,2755,8880,14014,12416,26057,24703,23311,20792,18088,18806,13972,13870,8071,3909,399],"devin":[2093,2294,3609,3404,6227,3435,4518,5006,2320,8690,10116,13112,13496,13551,19218,36776,26359,22388,15781,14347],"aider":[205,399,347,289,278,986,7894,6737,5130,9291,9745,6308,5320,6132,7679,8521,9551,7732,8908,3574]},"tool_labels":{"claude":"Claude Code","copilot_agent":"Copilot coding agent (bot-authored)","copilot_coauthor":"Copilot coding agent (squash-merged, trailer)","jules":"Jules (Google)","openai_codex":"OpenAI Codex","gemini_assist":"Gemini Code Assist","devin":"Devin","aider":"Aider"},"pushes":{"2025-01":103372732,"2025-02":97934289,"2025-03":109910258,"2025-04":103264033,"2025-05":94987478,"2025-06":66832515,"2025-07":71516129,"2025-08":71718183,"2025-09":71478121,"2025-10":61226053,"2025-11":75069424,"2025-12":75625427,"2026-01":74652688,"2026-02":65997599,"2026-03":83965677,"2026-04":79950331,"2026-05":88682757,"2026-06":95398281,"2026-07":112768841,"2026-08":51836867},"fits":{"claude":{"exponential":{"params":{"a":187476.74659794732,"b":0.2640636029641354},"aic":508.79721702441987,"r2":0.9639318626663933,"doubling_months":2.6249251043283204,"fitted":[187477,244134,317914,413992,539104,702028,914188,1190466,1550238,2018737,2628821,3423280,4457833,5805039,7559386,9843916,12818856,16692855,21737620,28306968,36861646,48001641,62508266,81398953,105998613,138032562],"n":18},"logistic":{"params":{"L":22495559.022746082,"k":0.575076097448585,"t0":14.823037756328182},"aic":480.62299104973164,"r2":0.9932532293662182,"ceiling":22495559.022746082,"inflection_t":14.823037756328182,"runaway":false,"fitted":[4466,7936,14101,25048,44479,78930,139898,247441,436040,763456,1321992,2246899,3705649,5838391,8634544,11819611,14915314,17493263,19377750,20628092,21405221,21868781,22138545,22293277,22381293,22431123],"n":18},"gompertz":{"params":{"L":29638725.081313606,"k":0.26998891793813223,"t0":14.700730648713153},"aic":479.1788542398799,"r2":0.9937733769268473,"ceiling":29638725.081313606,"inflection_t":14.700730648713153,"runaway":false,"fitted":[0,0,0,0,0,33,836,9969,66138,280419,844738,1960290,3727465,6087934,8853491,11783534,14657454,17314690,19663036,21667907,23334917,24693304,25783263,26647595,27326868,27857047],"n":18}},"total6":{"exponential":{"params":{"a":205688.19351865936,"b":0.259726330862759},"aic":509.2947179502644,"r2":0.9640285930203805,"doubling_months":2.668759760542756,"fitted":[205688,266690,345784,448335,581300,753699,977227,1267049,1642824,2130045,2761764,3580834,4642821,6019766,7805080,10119873,13121176,17012591,22058104,28599991,37082039,48079653,62338886,80827053,104798353,135878947],"n":18},"logistic":{"params":{"L":22836142.544756785,"k":0.5666754915598861,"t0":14.778008665144897},"aic":481.0783820654903,"r2":0.9932870463167383,"ceiling":22836142.544756785,"inflection_t":14.778008665144897,"runaway":false,"fitted":[5267,9282,16353,28804,50716,89231,156793,274893,480065,832720,1427888,2402001,3919008,6107728,8941073,12135306,15220671,17786601,19667935,20923696,21710214,22183358,22461109,22621823,22714040,22766700],"n":18},"gompertz":{"params":{"L":30195028.73263784,"k":0.26516395884050176,"t0":14.67050570860077},"aic":480.8716549730601,"r2":0.9933637024710742,"ceiling":30195028.73263784,"inflection_t":14.67050570860077,"runaway":false,"fitted":[0,0,0,0,1,69,1419,14458,85777,336137,958311,2140524,3964987,6362176,9144002,12077441,14950917,17610460,19966977,21986196,23672441,25053067,26166448,27053921,27755030,28305127],"n":18}}},"best":{"claude":"gompertz","total6":"gompertz"},"hindcast":{"claude":{"exponential":{"params":{"a":3567.77461961294,"b":0.5680916386059662},"aic":347.9528046438077,"r2":0.99401498487949,"doubling_months":1.220132692431192,"fitted":[3568,6297,11113,19613,34616,61093,107823,190297,335854,592746,1046136,1846321,3258563,5751025,10149959,17913621,31615673,55798368,98478304,173803943,306745845,541374447,955469474,1686304040,2976150879,5252596116],"n":14},"logistic":{"params":{"L":9999998182.942017,"k":0.5684024229692614,"t0":26.125014022649065},"aic":349.9740752288793,"r2":0.9940058847701263,"ceiling":9999998182.942017,"inflection_t":26.125014022649065,"runaway":true,"fitted":[3556,6278,11083,19566,34542,60982,107660,190066,335546,592373,1045754,1846073,3258680,5751583,10149631,17904699,31566488,55594548,97733183,171261302,298440020,515112069,874905093,1447648505,2300793239,3453683971],"n":14},"gompertz":{"params":{"L":9999999999.999998,"k":0.07442483777185985,"t0":39.95727953723762},"aic":357.6259465085461,"r2":0.9896463364095062,"ceiling":9999999999.999998,"inflection_t":39.95727953723762,"runaway":true,"fitted":[32,129,476,1595,4902,13896,36557,89729,206500,447659,918065,1788246,3320576,5898228,10053895,16494349,26116536,40011194,59451069,85862410,120780386,165790988,222463578,292279305,376560930,476409354],"n":14}},"total6":{"exponential":{"params":{"a":4868.949518270805,"b":0.547843971632413},"aic":351.59168357567046,"r2":0.9926759913281176,"doubling_months":1.2652273575167243,"fitted":[4869,8421,14564,25189,43565,75347,130313,225380,389799,674164,1165981,2016587,3487728,6032096,10432631,18043446,31206502,53972273,93346131,161444009,279220659,482917743,835215943,1444522762,2498331154,4320913948],"n":14},"logistic":{"params":{"L":9999999999.99906,"k":0.5481519892033454,"t0":26.52279283213252},"aic":353.6130571394212,"r2":0.992664801348067,"ceiling":9999999999.99906,"inflection_t":26.52279283213252,"runaway":true,"fitted":[4853,8396,14525,25129,43475,75213,130122,225116,389456,673760,1165584,2016350,3487879,6032679,10432259,18034624,31159828,53785797,92688321,159277906,272391798,462063604,773308401,1266370722,2005478339,3026475717],"n":14},"gompertz":{"params":{"L":9999999999.996946,"k":0.07202387830192994,"t0":40.76843054895886},"aic":360.959029818903,"r2":0.987603715033805,"ceiling":9999999999.996946,"inflection_t":40.76843054895886,"runaway":true,"fitted":[65,242,819,2545,7311,19516,48660,113858,251134,524290,1039978,1967009,3559219,6180244,10327682,16653432,25976769,39287016,57733496,82601741,115276392,157192783,209780390,274402249,352294753,444512100],"n":14}}},"hindcast_through":"2026-03","sensitivity":{"claude":{"rows":[{"space":"lin","start":"2025-02","n":18,"best":"gompertz","exponential_aic":508.8,"exp_doubling":2.62,"logistic_aic":480.6,"logistic_ceiling":22495559,"logistic_t0":14.8,"gompertz_aic":479.2,"gompertz_ceiling":29638725,"gompertz_t0":14.7},{"space":"lin","start":"2025-06","n":14,"best":"gompertz","exponential_aic":399.8,"exp_doubling":2.64,"logistic_aic":378.7,"logistic_ceiling":22495666,"logistic_t0":14.8,"gompertz_aic":377.5,"gompertz_ceiling":29638723,"gompertz_t0":14.7},{"space":"lin","start":"2025-11","n":9,"best":"gompertz","exponential_aic":261.0,"exp_doubling":2.77,"logistic_aic":249.1,"logistic_ceiling":22188322,"logistic_t0":14.8,"gompertz_aic":246.1,"gompertz_ceiling":28216716,"gompertz_t0":14.5},{"space":"log","start":"2025-02","n":18,"best":"gompertz","exponential_aic":93.5,"exp_doubling":1.34,"logistic_aic":86.3,"logistic_ceiling":11490726,"logistic_t0":11.7,"gompertz_aic":76.2,"gompertz_ceiling":59066034,"gompertz_t0":20.2},{"space":"log","start":"2025-06","n":14,"best":"exponential","exponential_aic":37.6,"exp_doubling":1.91,"logistic_aic":39.3,"logistic_ceiling":105657393,"logistic_t0":21.2,"gompertz_aic":42.9,"gompertz_ceiling":null,"gompertz_t0":60.0},{"space":"log","start":"2025-11","n":9,"best":"logistic","exponential_aic":21.6,"exp_doubling":1.86,"logistic_aic":5.6,"logistic_ceiling":20885335,"logistic_t0":14.5,"gompertz_aic":9.8,"gompertz_ceiling":42472802,"gompertz_t0":16.4}],"sigmoid_wins":5,"configs":6,"ceiling_min":11490726,"ceiling_max":105657393},"total6":{"rows":[{"space":"lin","start":"2025-02","n":18,"best":"gompertz","exponential_aic":509.3,"exp_doubling":2.67,"logistic_aic":481.1,"logistic_ceiling":22836143,"logistic_t0":14.8,"gompertz_aic":480.9,"gompertz_ceiling":30195029,"gompertz_t0":14.7},{"space":"lin","start":"2025-06","n":14,"best":"gompertz","exponential_aic":400.2,"exp_doubling":2.69,"logistic_aic":379.0,"logistic_ceiling":22833613,"logistic_t0":14.8,"gompertz_aic":378.8,"gompertz_ceiling":30195021,"gompertz_t0":14.7},{"space":"lin","start":"2025-11","n":9,"best":"gompertz","exponential_aic":261.3,"exp_doubling":2.82,"logistic_aic":249.0,"logistic_ceiling":22418204,"logistic_t0":14.7,"gompertz_aic":246.2,"gompertz_ceiling":28420064,"gompertz_t0":14.4},{"space":"log","start":"2025-02","n":18,"best":"gompertz","exponential_aic":87.5,"exp_doubling":1.43,"logistic_aic":79.8,"logistic_ceiling":12867843,"logistic_t0":12.0,"gompertz_aic":68.9,"gompertz_ceiling":74975043,"gompertz_t0":21.6},{"space":"log","start":"2025-06","n":14,"best":"exponential","exponential_aic":36.0,"exp_doubling":2.01,"logistic_aic":37.9,"logistic_ceiling":197085946,"logistic_t0":23.5,"gompertz_aic":42.0,"gompertz_ceiling":null,"gompertz_t0":60.0},{"space":"log","start":"2025-11","n":9,"best":"logistic","exponential_aic":20.9,"exp_doubling":1.92,"logistic_aic":5.1,"logistic_ceiling":21379988,"logistic_t0":14.5,"gompertz_aic":9.2,"gompertz_ceiling":42758736,"gompertz_t0":16.3}],"sigmoid_wins":5,"configs":6,"ceiling_min":12867843,"ceiling_max":197085946}},"headline":{"claude_last":19804129,"claude_mom_pct":14,"total6_last":20083498,"total6_mom_pct":13,"share_last_pct":17.8,"doubling_now":2.62,"doubling_march":1.22,"march_exp_pred_last_full":98478304,"logistic_ceiling":22495559,"gompertz_ceiling":29638725,"inflection_month":"2026-04","growth_since_jan25":825172,"cumulative_claude":96418643}};
+
+// ── helpers ─────────────────────────────────────────────────────────────
+const fmt = n => n == null ? '–' : n >= 1e9 ? (n/1e9).toFixed(1)+'B' : n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(n >= 1e4 ? 0 : 1)+'K' : String(n);
+const fmtFull = n => n == null ? '–' : n.toLocaleString('en-US');
+const $ = id => document.getElementById(id);
+const setAll = (sel, txt) => document.querySelectorAll(sel).forEach(e => e.textContent = txt);
+const H = DATA.headline, L = DATA.labels, LF = DATA.last_full_idx, LFM = DATA.last_full_month;
+const monthName = m => { const [y, mo] = m.split('-'); return new Date(+y, +mo-1, 1).toLocaleString('en-US', {month:'short', year:'numeric'}); };
+
+Chart.defaults.color = '#7a6652'; Chart.defaults.borderColor = '#e0d5c7';
+Chart.defaults.font.family = "'SF Mono', 'Fira Code', monospace"; Chart.defaults.font.size = 11;
+
+// ── header / notice / cards ─────────────────────────────────────────────
+$('hdr-last').textContent = monthName(L[L.length-1]) + (DATA.partial[L.length-1] ? ' (partial)' : '');
+$('hdr-updated').textContent = DATA.updated; $('ft-updated').textContent = DATA.updated;
+setAll('.lastm', monthName(LFM));
+const marIdx = L.indexOf('2026-03');
+$('n-mar').textContent = fmt(DATA.claude[marIdx]); $('n-last').textContent = fmt(H.claude_last);
+setAll('#n-last-month, #n-last-month2, #n-last-month3', monthName(LFM));
+$('n-dbl').textContent = H.doubling_now.toFixed(1); $('n-mom').textContent = H.claude_mom_pct;
+$('n-marchpred').textContent = fmt(H.march_exp_pred_last_full);
+const S = DATA.sensitivity.claude; $('n-sens').textContent = S.sigmoid_wins + ' of ' + S.configs;
+$('n-infl').textContent = monthName(H.inflection_month);
+$('n-ceil').textContent = fmt(H.logistic_ceiling) + '–' + fmt(H.gompertz_ceiling);
+$('c-claude').textContent = fmt(H.claude_last); $('c-claude-mom').textContent = (H.claude_mom_pct >= 0 ? '+' : '') + H.claude_mom_pct + '% MoM';
+$('c-total').textContent = fmt(H.total6_last);
+$('c-dbl').textContent = H.doubling_now.toFixed(1) + ' mo'; $('c-dbl-note').textContent = 'was ' + H.doubling_march.toFixed(2) + ' mo in the March-2026 fit';
+$('c-share').textContent = H.share_last_pct != null ? H.share_last_pct.toFixed(1) + '%' : '–';
+$('proj-end').textContent = monthName(DATA.proj_labels[DATA.proj_labels.length-1]);
+
+// ── bend chart ──────────────────────────────────────────────────────────
+const PL = DATA.proj_labels, pad = arr => [...arr, ...Array(PL.length - arr.length).fill(null)];
+const claudeFull = pad(DATA.claude.map((v, i) => DATA.partial[i] ? null : v));
+const claudePartial = pad(DATA.claude.map((v, i) => DATA.partial[i] ? v : null));
+const lo = pad(DATA.claude_lo.map((v, i) => DATA.partial[i] ? null : v)), hi = pad(DATA.claude_hi.map((v, i) => DATA.partial[i] ? null : v));
+const hindExp = DATA.hindcast.claude.exponential.fitted.map((v, i) => i >= marIdx ? v : null);
+const F = DATA.fits.claude;
+new Chart($('bendChart'), {
+  type: 'line',
+  data: { labels: PL, datasets: [
+    { label: 'collector hi', data: hi, borderWidth: 0, pointRadius: 0, fill: '+1', backgroundColor: 'rgba(45,31,14,0.10)', tension: 0 },
+    { label: 'collector lo', data: lo, borderWidth: 0, pointRadius: 0, fill: false, tension: 0 },
+    { label: 'Actual (Claude Code, public)', data: claudeFull, borderColor: '#2d1f0e', borderWidth: 2, pointRadius: 4, tension: 0, spanGaps: false },
+    { label: 'Partial month, to date', data: claudePartial, borderColor: '#2d1f0e', borderWidth: 0, pointRadius: 5, pointStyle: 'triangle', showLine: false },
+    { label: 'March-2026 exponential forecast (doubling ' + H.doubling_march.toFixed(2) + ' mo)', data: hindExp, borderColor: '#c45a3c', borderDash: [10, 5], borderWidth: 2, pointRadius: 0, tension: 0.2 },
+    { label: 'Logistic fit, all data (ceiling ' + fmt(F.logistic.ceiling) + ')', data: F.logistic.fitted, borderColor: '#2563eb', borderDash: [4, 4], borderWidth: 2, pointRadius: 0, tension: 0.2 },
+    { label: 'Gompertz fit, all data (ceiling ' + fmt(F.gompertz.ceiling) + ')', data: F.gompertz.fitted, borderColor: '#9333ea', borderDash: [2, 6], borderWidth: 2, pointRadius: 0, tension: 0.2 },
+    { label: 'Exponential fit, all data (doubling ' + F.exponential.doubling_months.toFixed(1) + ' mo)', data: F.exponential.fitted, borderColor: '#9a8b7a', borderDash: [12, 4], borderWidth: 1.5, pointRadius: 0, tension: 0.2 },
+  ]},
+  options: { responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14, filter: it => !/collector/.test(it.text) } },
+               tooltip: { callbacks: { label: c => c.dataset.label.split(' (')[0] + ': ' + fmt(c.parsed.y) } } },
+    scales: { y: { type: 'logarithmic', min: 1000, max: 2e8, grid: { color: '#f0e8dd' }, ticks: { callback: v => [1e3,1e4,1e5,1e6,1e7,1e8].includes(v) ? fmt(v) : '' }, title: { display: true, text: 'commits/month (log)' } },
+              x: { grid: { display: false } } } }
+});
+$('bend-note').innerHTML = 'Solid line: measured (BigQuery through Sep 2025, windowed Search API after; Oct 2025 filled). Triangle: current month to date, not used in fits. Red dashes: the exponential fitted to data through Mar 2026 — the March page\'s headline model — projected forward; it predicted <strong>' + fmt(H.march_exp_pred_last_full) + '</strong> for ' + monthName(LFM) + ' against a measured ' + fmt(H.claude_last) + '. Blue/purple: sigmoids fitted to all data, inflection ' + monthName(H.inflection_month) + '. Cumulative Claude Code commits Jan 2025 → ' + monthName(L[L.length-1]) + ': ' + fmt(H.cumulative_claude) + ' (' + fmtFull(H.growth_since_jan25) + '× the Jan-2025 monthly count, for anyone still counting that way).';
+
+// ── MoM chart ───────────────────────────────────────────────────────────
+const momL = [], momV = [];
+for (let i = L.indexOf('2025-08'); i <= LF; i++) { momL.push(L[i]); momV.push((DATA.claude[i] / DATA.claude[i-1] - 1) * 100); }
+new Chart($('momChart'), { type: 'bar', data: { labels: momL, datasets: [{ data: momV,
+  backgroundColor: momV.map(v => v >= 50 ? 'rgba(181,69,27,0.65)' : v >= 0 ? 'rgba(201,149,107,0.7)' : 'rgba(154,139,122,0.6)'), borderColor: momV.map(v => v >= 50 ? '#b5451b' : '#9a8b7a'), borderWidth: 1 }] },
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => (c.parsed.y >= 0 ? '+' : '') + c.parsed.y.toFixed(0) + '% MoM' } } },
+    scales: { y: { grid: { color: '#f0e8dd' }, ticks: { callback: v => v + '%' } }, x: { grid: { display: false } } } } });
+
+// ── share chart ─────────────────────────────────────────────────────────
+const shareL = [], shareV = [];
+L.forEach((m, i) => { const p = DATA.pushes[m]; if (p && !DATA.partial[i]) { shareL.push(m); shareV.push(DATA.total6[i] / p * 100); } });
+new Chart($('shareChart'), { type: 'line', data: { labels: shareL, datasets: [{ label: 'AI-attributed commits / push events', data: shareV, borderColor: '#b5451b', backgroundColor: 'rgba(181,69,27,0.08)', fill: true, tension: 0.3, pointRadius: 3, borderWidth: 2 }] },
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } }, tooltip: { callbacks: { label: c => c.parsed.y.toFixed(2) + '%' } } },
+    scales: { y: { grid: { color: '#f0e8dd' }, ticks: { callback: v => v.toFixed(0) + '%' } }, x: { grid: { display: false } } } } });
+
+// ── tool chart ──────────────────────────────────────────────────────────
+const TC = { claude: '#b5451b', copilot_agent: '#1f7a4d', copilot_coauthor: '#7cc59a', jules: '#1a73e8', openai_codex: '#111', gemini_assist: '#34a853', devin: '#6b3a2a', aider: '#c9956b' };
+new Chart($('toolChart'), { type: 'line', data: { labels: L, datasets: Object.keys(DATA.tools).map(t => ({ label: DATA.tool_labels[t], data: DATA.tools[t].map((v, i) => DATA.partial[i] ? null : v), borderColor: TC[t], backgroundColor: TC[t] + '22', fill: false, tension: 0.3, pointRadius: 2, borderWidth: t === 'claude' ? 3 : 1.5, spanGaps: false })) },
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } }, tooltip: { callbacks: { label: c => c.dataset.label + ': ' + fmt(c.parsed.y) } } },
+    scales: { y: { stacked: false, type: 'logarithmic', min: 1000, grid: { color: '#f0e8dd' }, ticks: { callback: v => [1e3,1e4,1e5,1e6,1e7,1e8].includes(v) ? fmt(v) : '' } }, x: { grid: { display: false } } } } });
+
+// ── fit tables ──────────────────────────────────────────────────────────
+$('th-lastfull').textContent = 'fit @ ' + monthName(LFM); $('th-proj').textContent = 'proj. ' + monthName(PL[PL.length-1]);
+const tb = document.querySelector('#fitTable tbody');
+const addRows = (title, block, best) => ['exponential', 'logistic', 'gompertz'].forEach(name => {
+  const f = block[name]; if (!f) return;
+  const tr = document.createElement('tr'); if (name === best) tr.className = 'best';
+  const dc = name === 'exponential' ? 'doubling ' + f.doubling_months.toFixed(2) + ' mo' : (f.runaway ? 'ceiling → bound (none found)' : 'ceiling ' + fmt(f.ceiling));
+  const infl = name === 'exponential' ? '—' : (f.inflection_t < PL.length ? monthName(PL[Math.round(f.inflection_t)]) : 'beyond range');
+  tr.innerHTML = `<td>${title}</td><td>${name}</td><td class="num">${f.aic.toFixed(1)}</td><td class="num">${f.r2.toFixed(3)}</td><td>${dc}</td><td>${infl}</td><td class="num">${fmt(f.fitted[LF])}</td><td class="num">${fmt(f.fitted[PL.length-1])}</td>`;
+  tb.appendChild(tr);
+});
+addRows('All data → ' + monthName(LFM), DATA.fits.claude, DATA.best.claude);
+addRows('Hindcast ≤ ' + monthName(DATA.hindcast_through), DATA.hindcast.claude, null);
+$('sens-note').innerHTML = '<strong>Sensitivity.</strong> Same three models across ' + S.configs + ' configurations (fit space × start month). A sigmoid beats the exponential in <strong>' + S.sigmoid_wins + '/' + S.configs + '</strong>; sigmoid ceilings span ' + fmt(S.ceiling_min) + '–' + fmt(S.ceiling_max) + '.';
+const sb = document.querySelector('#sensTable tbody');
+S.rows.forEach(r => { const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${r.space}</td><td>${r.start}</td><td class="num">${r.n}</td><td>${r.best || '—'}</td><td class="num">${r.exp_doubling ?? '—'}</td><td class="num">${r.logistic_ceiling ? fmt(r.logistic_ceiling) : '—'}</td><td class="num">${r.logistic_t0 != null ? monthName(PL[Math.min(PL.length-1, Math.round(r.logistic_t0))]) : '—'}</td><td class="num">${r.gompertz_ceiling ? fmt(r.gompertz_ceiling) : '—'}</td><td class="num">${r.gompertz_t0 != null && r.gompertz_t0 < PL.length ? monthName(PL[Math.round(r.gompertz_t0)]) : '—'}</td>`;
+  sb.appendChild(tr); });
+</script>
+</body>
+</html>

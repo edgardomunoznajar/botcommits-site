@@ -1,0 +1,13 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# Local web-server scratch
+*.pid
+.local-server.log
+
+# Archived Cloud Run Dockerfile is checked in for provenance, not ignored
